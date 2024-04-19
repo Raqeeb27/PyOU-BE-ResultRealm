@@ -1,0 +1,5 @@
+# Explicitly declaring files that will always have LF line endings on checkout
+*.sh text eol=lf
+*.py text eol=lf
+*.txt text eol=lf
+*.md text eol=lf

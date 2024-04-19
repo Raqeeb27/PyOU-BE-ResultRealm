@@ -1,0 +1,7 @@
+# Direct Dependencies
+requests
+beautifulsoup4
+pandas
+
+# Indirect Dependencies
+numpy
