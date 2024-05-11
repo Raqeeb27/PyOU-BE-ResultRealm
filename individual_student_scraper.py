@@ -36,6 +36,7 @@ def fetch_result(hall_ticket_no, html_file_path):
         sys.exit(1)
 
     write_to_html(soup, html_file_path)
+    return html_file_path
 
 ## --------------------------------------------------------------------------
 # Function to write to HTML
@@ -54,10 +55,7 @@ def write_to_html(result_soup, html_file_path):
 ## --------------------------------------------------------------------------
 # Function to fetch result and save as HTML
 def fetch_result_and_save_as_html(hall_ticket_number):
-    roll_number = int(hall_ticket_number[-2:])
-    hall_ticket_no = f"{hall_ticket_number[:-2]}{roll_number:03d}"
-
-    html_file_path = os.path.join(RESULTS_DIRECTORY, f"{hall_ticket_no}.html")
+    html_file_path = os.path.join(RESULTS_DIRECTORY, f"{hall_ticket_number}.html")
 
     print(f"\nFetching \"{hall_ticket_number}\" results....")
 
@@ -78,8 +76,8 @@ if __name__ == '__main__':
     college_code = 0000
     year_of_join = 00
     branch_code = 000
-    roll_number = 00
+    roll_number = 0
 
-    result_file = fetch_result_and_save_as_html(f"{college_code}{year_of_join}{branch_code}{roll_number}")
+    result_file = fetch_result_and_save_as_html(f"{college_code}{year_of_join}{branch_code}{roll_number:03d}")
 
     print(f"\nFetching Result Successful !!!\nResults File name: {result_file}\n")
