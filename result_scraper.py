@@ -6,9 +6,10 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 
-HEADER_FIELDS = ["Hall Ticket No.", "Student Name", "Father's Name", "Semester", "Result with SGPA", "Theory", "Labs", "Semesters Written", "Passed", "Promoted", "Overall"]
+HEADER_FIELDS = ["Hall Ticket No.", "Student Name", "Father's Name", "Semester", "Result With SGPA", "Theory", "Labs", "Semesters Written", "Passed", "Promoted", "Overall"]
 
-BASE_URL = "https://www.osmania.ac.in/*ENTER YOUR RESULT URL*"
+BASE_URL = "https://www.osmania.ac.in/*ENTER YOUR RESULT URL*"       # Specify Result URL
+
 
 ## ===========================================================================
 ### Functions
@@ -18,15 +19,18 @@ def parse_result_data(names):
     # Find the total subjects written with labs
     marks_details_position = names.index('Marks Details')
     result_position = names.index('Result')
-    total_subjects = int((result_position - marks_details_position - 1) / 4)
+    total_subjects_div_value = 4 if names[marks_details_position + 4].isdigit() else 3
+    total_subjects = int((result_position - marks_details_position - 1) / total_subjects_div_value)
+
+    semester, result_with_sgpa = (names[-4], names[-3]) if 'Year' in names else (names[-5], names[-4])
+
+    # Find the total semesters written   
+    result_index = names.index('Result')
+    enter_hall_ticket_no = names.index('Enter  Hall Ticket No. :')
+    semesters_written = int((enter_hall_ticket_no - result_index - 4) / 3)
 
     # Find the total labs written
     count_LAB = sum(1 for element in names if "LAB" in element)
-
-    # Find the total semesters written   
-    result_with_SGPA = names.index('Result with SGPA')
-    enter_hall_ticket_no = names.index('Enter  Hall Ticket No. :')
-    semesters_written = int((enter_hall_ticket_no - result_with_SGPA - 1) / 3)
 
     # Find the total passed semesters
     count_PASSED = sum(1 for element in names if ("PASSED" in element) or ("PROMOTED" in element and element.count('-') == 1))
@@ -42,8 +46,8 @@ def parse_result_data(names):
         "Hall Ticket No.": names[2][8:],
         "Student Name": names[4],
         "Father's Name": names[5],
-        "Semester": names[-4],
-        "Result with SGPA": names[-3],
+        "Semester": semester,
+        "Result With SGPA": result_with_sgpa,
         "Theory": total_subjects - count_LAB,
         "Labs": count_LAB,
         "Semesters Written": semesters_written,
@@ -85,7 +89,7 @@ def fetch_result(hall_ticket_prefix):
             # Iterate through the <b> tags and extract the names
             names = [name.get_text(strip=True) for name in soup.find_all('b')]
 
-            if names[1] == f'The Hall Ticket Number "{hall_ticket_no}" Is Not Found.':
+            if names[1][:8] == 'The Hall':
                 consecutive_not_found_count += 1
 
                 result_data.append({HEADER_FIELDS[0]: hall_ticket_no[8:], **{key: 'Absent' for key in HEADER_FIELDS[1:]}})
@@ -156,61 +160,88 @@ def assign_rankings(results_file, overall=False, current=False):
     if overall ^ current == False:
         print("\nInvalid Boolean Combination\nUnable to assign SGPA rankings")
     else:
-        filtered_df = df[(df['Overall'] == 'All Clear') if overall else ((df['Result with SGPA'].str.startswith('PASSED')) | (df['Result with SGPA'].str.contains('PROMOTED-') & (df['Result with SGPA'].str.count('-') == 1)))]
+        filtered_df = df[(df['Overall'] == 'All Clear') if overall else ((df['Result With SGPA'].str.startswith('PASSED')) | (df['Result With SGPA'].str.contains('PROMOTED-') & (df['Result With SGPA'].str.count('-') == 1)))]
 
-        RANKINGS = 'Overall-Rankings' if overall else 'Rankings'
+        if not filtered_df.empty:
 
-        # Extract and create list of numeric values from 'Result with SGPA' column
-        result_sgpa_values_list = filtered_df['Result with SGPA'].str.split('-').str[1].astype(float).values.tolist()
+            RANKINGS = 'Overall-Rankings' if overall else 'Rankings'
 
-        sorted_values = sorted(set(result_sgpa_values_list), reverse=True)
+            # Split the 'Result With SGPA' column by '-' and extract the second part
+            result_sgpa_values = filtered_df['Result With SGPA'].str.split('-').str[1]
 
-        rankings_dict = {value: rank for rank, value in enumerate(sorted_values, start=1)}
+            # Convert the extracted values to float and create a list
+            result_sgpa_values_list = result_sgpa_values.astype(float).tolist()
 
-        for index, row in filtered_df.iterrows():
-            # Extract numeric value from 'Result with SGPA' column
-            numeric_value = float(row['Result with SGPA'].split('-')[1])
-            
-            ranking = rankings_dict.get(numeric_value, None)  # Assign ranking from the dictionary
-            
-            df.loc[index, RANKINGS] = ranking  # Update the 'Rankings' column
+            sorted_values = sorted(set(result_sgpa_values_list), reverse=True)
 
-        df.to_csv(results_file, index=False)
+            rankings_dict = {value: rank for rank, value in enumerate(sorted_values, start=1)}
+
+            for index, row in filtered_df.iterrows():
+                # Extract numeric value from 'Result With SGPA' column
+                numeric_value = float(row['Result With SGPA'].split('-')[1])
+                
+                ranking = rankings_dict.get(numeric_value, None)  # Assign ranking from the dictionary
+                
+                df.loc[index, RANKINGS] = ranking  # Update the 'Rankings' column
+
+            df.to_csv(results_file, index=False)
 
 ## --------------------------------------------------------------------------
 # Function to calculate results statistics
 def result_stats(results_file):
     df = pd.read_csv(results_file)
+    try:
+        # Extract numeric part from Result With SGPA values and convert to float
+        result_sgpa_values = df['Result With SGPA'].str.extract(r'(\d+\.\d+)').astype(float)
 
-    # Extract numeric part from Result with SGPA values and convert to float
-    result_sgpa_values = df['Result with SGPA'].str.extract(r'(\d+\.\d+)').astype(float)
+        # Find the maximum and its corresponding values from 'Result With SGPA'
+        max_result_sgpa_value = result_sgpa_values.max().iloc[0]
 
-    # Find the maximum and its corresponding values from 'Result with SGPA'
-    max_result_sgpa = result_sgpa_values.max().iloc[0]
+        max_result_rows = df[result_sgpa_values.eq(max_result_sgpa_value).squeeze()]
 
-    max_result_row = df.loc[result_sgpa_values.idxmax()]
-    max_result_hall_ticket = max_result_row["Hall Ticket No."].values[0]
-    max_result_name = max_result_row["Student Name"].values[0]
-    max_result_father_name = max_result_row["Father's Name"].values[0]
+    except:
+        new_row = {
+            "Hall Ticket No.": "No",
+            "Student Name": "Student",
+            "Father's Name": "Passed",
+            "Semester": "This",
+            "Result With SGPA": "Semester",
+        }
+        new_df = pd.DataFrame([new_row])
 
-    # Count the number of rows with the specified conditions
-    pass_count = ((df['Result with SGPA'].str.contains('PASSED')) |
-                ((df['Result with SGPA'].str.contains('PROMOTED')) & (df['Result with SGPA'].str.count('-') == 1))).sum()
-    all_clear_count = df['Overall'].value_counts().get("All Clear", 0)
+        # Concatenate the new DataFrame with the original DataFrame
+        df = pd.concat([df, new_df], ignore_index=True)
+        df.to_csv(results_file, index=False)
+        return
 
-    new_row = {
-        "Hall Ticket No.": max_result_hall_ticket,
-        "Student Name": max_result_name,
-        "Father's Name": max_result_father_name,
-        "Result with SGPA": f'Highest - \"{max_result_sgpa}\"',
-        "Passed": f'Passed - \'{pass_count}\'',
-        "Overall": f'All Clear - \'{all_clear_count}\'',
-    }
+    for max_students in range(len(max_result_rows)):
 
-    new_df = pd.DataFrame([new_row])
+        max_result_hall_ticket = max_result_rows["Hall Ticket No."].values[max_students]
+        max_result_name = max_result_rows["Student Name"].values[max_students]
+        max_result_father_name = max_result_rows["Father's Name"].values[max_students]
 
-    # Concatenate the new DataFrame with the original DataFrame
-    df = pd.concat([df, new_df], ignore_index=True)
+        new_row = {
+            "Hall Ticket No.": max_result_hall_ticket,
+            "Student Name": max_result_name,
+            "Father's Name": max_result_father_name,
+            "Result With SGPA": f'Highest - \"{max_result_sgpa_value}\"',
+        }
+        
+        if max_students == len(max_result_rows) - 1:
+            # Count the number of rows with the specified conditions
+            pass_count = ((df['Result With SGPA'].str.contains('PASSED')) |
+                        ((df['Result With SGPA'].str.contains('PROMOTED')) & (df['Result With SGPA'].str.count('-') == 1))).sum()
+            all_clear_count = df['Overall'].value_counts().get("All Clear", 0)
+
+            # Append "Passed" and "Overall" entries
+            new_row["Passed"] = f'Passed - \'{pass_count}\''
+            new_row["Overall"] = f'All Clear - \'{all_clear_count}\''
+
+        new_df = pd.DataFrame([new_row])
+
+        # Concatenate the new DataFrame with the original DataFrame
+        df = pd.concat([df, new_df], ignore_index=True)
+
     df.to_csv(results_file, index=False)
 
 
