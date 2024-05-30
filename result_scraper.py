@@ -133,6 +133,7 @@ def write_to_csv(result_data, csv_file_path):
         csv_writer.writeheader()   # Write the header row
         csv_writer.writerows(result_data)
         csv_writer.writerow({})  # Write an empty row
+        csv_writer.writerow({})  # Write an empty row
 
 ## --------------------------------------------------------------------------
 # Function to download an image from a given URL
@@ -190,57 +191,62 @@ def assign_rankings(results_file, overall=False, current=False):
 # Function to calculate results statistics
 def result_stats(results_file):
     df = pd.read_csv(results_file)
-    try:
-        # Extract numeric part from Result With SGPA values and convert to float
-        result_sgpa_values = df['Result With SGPA'].str.extract(r'(\d+\.\d+)').astype(float)
 
-        # Find the maximum and its corresponding values from 'Result With SGPA'
-        max_result_sgpa_value = result_sgpa_values.max().iloc[0]
+    # Count the number of rows with the specified conditions
+    pass_count = ((df['Result With SGPA'].str.contains('PASSED')) |
+                ((df['Result With SGPA'].str.contains('PROMOTED')) & (df['Result With SGPA'].str.count('-') == 1))).sum()
+    all_clear_count = df['Overall'].value_counts().get("All Clear", 0)
 
-        max_result_rows = df[result_sgpa_values.eq(max_result_sgpa_value).squeeze()]
+    # Append "Passed" and "Overall" entries
+    stats_row = {
+        "Student Name": f'Passed - \'{pass_count}\'',
+        "Father's Name": f'All Clear - \'{all_clear_count}\'',
+    }
 
-    except:
-        new_row = {
-            "Hall Ticket No.": "No",
-            "Student Name": "Student",
-            "Father's Name": "Passed",
-            "Semester": "This",
-            "Result With SGPA": "Semester",
+    stats_df = pd.DataFrame([stats_row])
+    # Concatenate the new DataFrame with the original DataFrame
+    df = pd.concat([df, stats_df], ignore_index=True)
+
+    # Create an empty row any a row with the first column value as "Students Passed" title
+    empty_row = pd.DataFrame([{}], columns=df.columns)
+    side_heading_row = pd.DataFrame([{"Hall Ticket No.": "Students Passed:"}], columns=df.columns)
+
+    # Concatenate the original DataFrame, empty rows, special row, and additional empty row
+    df = pd.concat([df, empty_row], ignore_index=True)
+    df = pd.concat([df, empty_row], ignore_index=True)
+    df = pd.concat([df, side_heading_row], ignore_index=True)
+    df = pd.concat([df, empty_row], ignore_index=True)
+
+    header_row = {
+        "Hall Ticket No.": "Rankings",
+        "Student Name": "Hall Ticket No.",
+        "Father's Name": "Student Name",
+        "Semester": "Father's Name",
+        "Result With SGPA": "Result With SGPA",
+    }
+    header_df = pd.DataFrame([header_row])
+    df = pd.concat([df, header_df], ignore_index=True)
+    df = pd.concat([df, empty_row], ignore_index=True)
+
+    # Sort the DataFrame by Rankings in descending order and keep the rows where Rankings is not null
+    sorted_df = df[~df['Rankings'].isna()].sort_values(by='Rankings', ascending=True)
+
+    for students in range(len(sorted_df)):
+        student_hall_ticket = sorted_df["Hall Ticket No."].values[students]
+        student_name = sorted_df["Student Name"].values[students]
+        student_father_name = sorted_df["Father's Name"].values[students]
+        student_sgpa = sorted_df["Result With SGPA"].values[students]
+        student_ranking = sorted_df["Rankings"].values[students]
+
+        student_row = {
+            "Hall Ticket No.": student_ranking,
+            "Student Name": student_hall_ticket,
+            "Father's Name": student_name, 
+            "Semester": student_father_name,
+            "Result With SGPA": student_sgpa,
         }
-        new_df = pd.DataFrame([new_row])
-
-        # Concatenate the new DataFrame with the original DataFrame
-        df = pd.concat([df, new_df], ignore_index=True)
-        df.to_csv(results_file, index=False)
-        return
-
-    for max_students in range(len(max_result_rows)):
-
-        max_result_hall_ticket = max_result_rows["Hall Ticket No."].values[max_students]
-        max_result_name = max_result_rows["Student Name"].values[max_students]
-        max_result_father_name = max_result_rows["Father's Name"].values[max_students]
-
-        new_row = {
-            "Hall Ticket No.": max_result_hall_ticket,
-            "Student Name": max_result_name,
-            "Father's Name": max_result_father_name,
-            "Result With SGPA": f'Highest - \"{max_result_sgpa_value}\"',
-        }
-        
-        if max_students == len(max_result_rows) - 1:
-            # Count the number of rows with the specified conditions
-            pass_count = ((df['Result With SGPA'].str.contains('PASSED')) |
-                        ((df['Result With SGPA'].str.contains('PROMOTED')) & (df['Result With SGPA'].str.count('-') == 1))).sum()
-            all_clear_count = df['Overall'].value_counts().get("All Clear", 0)
-
-            # Append "Passed" and "Overall" entries
-            new_row["Passed"] = f'Passed - \'{pass_count}\''
-            new_row["Overall"] = f'All Clear - \'{all_clear_count}\''
-
-        new_df = pd.DataFrame([new_row])
-
-        # Concatenate the new DataFrame with the original DataFrame
-        df = pd.concat([df, new_df], ignore_index=True)
+        passed_df = pd.DataFrame([student_row])
+        df = pd.concat([df, passed_df], ignore_index=True)
 
     df.to_csv(results_file, index=False)
 
