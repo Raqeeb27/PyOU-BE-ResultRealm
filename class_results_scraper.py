@@ -11,7 +11,7 @@ BASE_URL = "https://www.osmania.ac.in/*ENTER YOUR RESULT URL*"
 
 def fetch_result(hall_ticket_no):
     data = {
-        "mbstatus": "SEARCH", 
+        "mbstatus": "SEARCH",
         "htno": hall_ticket_no
     }
     try:
@@ -19,7 +19,7 @@ def fetch_result(hall_ticket_no):
         response = requests.post(BASE_URL, data=data)
         response.raise_for_status()
         return response
-    
+
     except KeyboardInterrupt:
         print("\n\nKeyboard Interrupt!!!\nExiting...\n")
         sys.exit(0)
@@ -46,7 +46,7 @@ def fetch_result_and_save_as_html(hall_ticket_prefix, class_dir_path):
         response = fetch_result(hall_ticket_no)
 
         if response.status_code == 200:
-            
+
             soup, names = parse_result(response.text)
 
             if names[1] == f'The Hall Ticket Number "{hall_ticket_no}" Is Not Found.':
@@ -61,7 +61,7 @@ def fetch_result_and_save_as_html(hall_ticket_prefix, class_dir_path):
                         continue
             else:
                 consecutive_not_found_count = 0  # Reset the count
-                
+
                 html_file_path = os.path.join(class_dir_path, f"{hall_ticket_no}.html")
                 write_to_html(soup, html_file_path)
         else:
@@ -83,7 +83,7 @@ def write_to_html(result_soup, html_file_path):
         print(f"\nPermission denied for writing to {html_file_path} file!\nMake sure the file isn't open.\n")
 
 ### ===========================================================================
-## Main 
+## Main
 #
 if __name__ == '__main__':
 

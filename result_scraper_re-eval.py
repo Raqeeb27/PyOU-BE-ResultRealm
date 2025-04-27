@@ -69,7 +69,7 @@ def get_result_and_write_to_csv(hall_ticket_prefix, results_directory):
                 if names[1] == f'The Hall Ticket Number "{hall_ticket_no}" Is No CHANGE.':
 
                     consecutive_not_found_count += 1
-                    
+
                     keys = ["Hall Ticket No.", "Name", "Father's Name", "Semester", "Result with SGPA", "Theory", "Labs", "Semesters", "Passed", "Promoted", "Overall"]
                     result_data.append({keys[0]: hall_ticket_no[8:], **{key: 'No Change' for key in keys[1:]}})
 
@@ -83,7 +83,7 @@ def get_result_and_write_to_csv(hall_ticket_prefix, results_directory):
                 else:
                     consecutive_not_found_count = 0   # Reset the count
 
-                    # Find the total subjects written with labs             
+                    # Find the total subjects written with labs
                     marks_details_position = names.index('Marks Details')
                     result_position = names.index('Result')
                     total_subjects = int((result_position - marks_details_position -1)/4)
@@ -91,7 +91,7 @@ def get_result_and_write_to_csv(hall_ticket_prefix, results_directory):
                     # Find the total labs written
                     count_LAB = sum(1 for element in names if "LAB" in element)
 
-                    # Find the total semesters written            
+                    # Find the total semesters written
                     result_with_SGPA = names.index('Result With SGPA')
                     enter_hall_ticket_no = names.index('Enter  Hall Ticket No. :')
                     semesters_written = int((enter_hall_ticket_no - result_with_SGPA -1)/3)
@@ -99,14 +99,14 @@ def get_result_and_write_to_csv(hall_ticket_prefix, results_directory):
                     # Find the total passed semesters
                     count_PASSED = sum(1 for element in names if "PASSED" in element)
                     count_COMPLETED = sum(1 for element in names if "COMPLETED" in element)
-                    
+
                     # Find the total Promoted semesters
                     count_PROMOTED = sum(1 for element in names if "PROMOTED" in element)
 
                     # Calculate Overall result
                     overall_status = "All Clear" if semesters_written == count_PASSED + count_COMPLETED else "Pending"
 
-                
+
                     result_data.append({
                         "Hall Ticket No.": names[2][8:],
                         "Name": names[4],
@@ -120,19 +120,19 @@ def get_result_and_write_to_csv(hall_ticket_prefix, results_directory):
                         "Promoted": count_PROMOTED,
                         "Overall": overall_status,
                     })
-                    
+
             else:
                 print(f"\nFailed to fetch result for Hall Ticket No {hall_ticket_no}. \nStatus Code: {response.status_code}\n")
                 break
 
-            roll_suffix += 1        
-        
+            roll_suffix += 1
+
         # Filter out dictionaries with 'No Change' as value for 'Name' key
         filtered_data = filter_no_change(result_data)
 
         # Remove the last 4 records from the result_data list
         #result_data = result_data[:-4]
-            
+
         for result_entry in filtered_data:
             # Write only the required columns to the CSV file
             keys_to_write = ["Hall Ticket No.", "Name", "Father's Name", "Semester", "Result with SGPA", "Theory", "Labs", "Semesters", "Passed", "Promoted", "Overall"]
@@ -141,9 +141,9 @@ def get_result_and_write_to_csv(hall_ticket_prefix, results_directory):
     print(f"\nFetching Results Successfull !!!\nResults File name: {csv_file_path}\n")
 
 ### ===========================================================================
-## Main 
+## Main
 #
-            
+
 if __name__ == '__main__':
 
     # Setting up Result directory

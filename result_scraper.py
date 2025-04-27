@@ -24,7 +24,7 @@ def parse_result_data(names):
 
     semester, result_with_sgpa = (names[-4], names[-3]) if 'Year' in names else (names[-5], names[-4])
 
-    # Find the total semesters written   
+    # Find the total semesters written
     result_index = names.index('Result')
     enter_hall_ticket_no = names.index('Enter  Hall Ticket No. :')
     semesters_written = int((enter_hall_ticket_no - result_index - 4) / 3)
@@ -59,7 +59,7 @@ def parse_result_data(names):
 ## --------------------------------------------------------------------------
 # Function to fetch results from a given URL
 def fetch_result(hall_ticket_prefix):
-    
+
     result_data = []
     consecutive_not_found_count = 0  # To count consecutive "Hall Ticket Not Found" occurrences
 
@@ -67,7 +67,7 @@ def fetch_result(hall_ticket_prefix):
     while True:
         hall_ticket_no = f"{hall_ticket_prefix}{roll_suffix:03d}"
         data = {
-            "mbstatus": "SEARCH", 
+            "mbstatus": "SEARCH",
             "htno": hall_ticket_no
         }
 
@@ -139,7 +139,7 @@ def write_to_csv(result_data, csv_file_path):
 # Function to download an image from a given URL
 def get_results_and_write_to_csv(hall_ticket_prefix, results_directory):
     csv_file_path = os.path.join(results_directory, f"{hall_ticket_prefix}.csv")
-    
+
     # Check CSV file Permission
     with open_csv_file(csv_file_path, 'w') as csv_file:
         pass
@@ -180,9 +180,9 @@ def assign_rankings(results_file, overall=False, current=False):
             for index, row in filtered_df.iterrows():
                 # Extract numeric value from 'Result With SGPA' column
                 numeric_value = float(row['Result With SGPA'].split('-')[1])
-                
+
                 ranking = rankings_dict.get(numeric_value, None)  # Assign ranking from the dictionary
-                
+
                 df.loc[index, RANKINGS] = ranking  # Update the 'Rankings' column
 
             df.to_csv(results_file, index=False)
@@ -241,7 +241,7 @@ def result_stats(results_file):
         student_row = {
             "Hall Ticket No.": student_ranking,
             "Student Name": student_hall_ticket,
-            "Father's Name": student_name, 
+            "Father's Name": student_name,
             "Semester": student_father_name,
             "Result With SGPA": student_sgpa,
         }
@@ -252,7 +252,7 @@ def result_stats(results_file):
 
 
 ### ===========================================================================
-## Main 
+## Main
 #
 if __name__ == '__main__':
     # Create Result directory

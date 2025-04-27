@@ -13,7 +13,7 @@ BASE_URL = "https://www.osmania.ac.in/*ENTER YOUR RESULT URL*"
 def fetch_result(hall_ticket_no, html_file_path):
 
     data = {
-        "mbstatus": "SEARCH", 
+        "mbstatus": "SEARCH",
         "htno": hall_ticket_no
     }
 
@@ -62,7 +62,7 @@ def fetch_result_and_save_as_html(hall_ticket_number):
     return fetch_result(hall_ticket_number, html_file_path)
 
 ### ===========================================================================
-## Main 
+## Main
 #
 if __name__ == '__main__':
     # Create Result directory
